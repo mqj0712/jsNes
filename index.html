@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>jsNes</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #111;
+    }
+    #nes-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    #screen {
+      border: 2px solid #333;
+      image-rendering: pixelated;
+    }
+    #controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: #888;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div id="nes-container">
+    <canvas id="screen" width="256" height="240"></canvas>
+    <div id="controls">
+      <input type="file" id="rom-input" accept=".nes">
+      <span id="status">No ROM loaded</span>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
