@@ -1,5 +1,5 @@
 import type { Renderer, RenderMode } from '../types/nes';
-import { FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT, NES_PALETTE } from '../types/nes';
+import { FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT } from '../types/nes';
 
 export class CanvasRenderer implements Renderer {
   private canvas: HTMLCanvasElement | null = null;
@@ -19,7 +19,7 @@ export class CanvasRenderer implements Renderer {
 
     const data = this.imageData.data;
     for (let i = 0; i < buffer.length; i++) {
-      const pixel = NES_PALETTE[buffer[i] & 0x3F] | 0xFF000000;
+      const pixel = buffer[i];
       data[i * 4] = (pixel >> 16) & 0xFF;
       data[i * 4 + 1] = (pixel >> 8) & 0xFF;
       data[i * 4 + 2] = pixel & 0xFF;
@@ -110,7 +110,7 @@ export class WebGlRenderer implements Renderer {
 
     const pixels = new Uint8Array(buffer.length * 4);
     for (let i = 0; i < buffer.length; i++) {
-      const pixel = NES_PALETTE[buffer[i] & 0x3F];
+      const pixel = buffer[i];
       pixels[i * 4] = (pixel >> 16) & 0xFF;
       pixels[i * 4 + 1] = (pixel >> 8) & 0xFF;
       pixels[i * 4 + 2] = pixel & 0xFF;

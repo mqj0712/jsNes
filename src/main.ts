@@ -8,6 +8,20 @@ const STATUS = document.getElementById('status') as HTMLSpanElement;
 const emulator = new Emulator();
 emulator.initRenderer(SCREEN);
 
+let frameCount = 0;
+
+emulator.onFrame(() => {
+  frameCount++;
+  if (frameCount === 60) {
+    const state = emulator.getCpuState();
+    console.log('=== After 60 frames ===');
+    console.log('PC:', state.PC.toString(16));
+    console.log('A:', state.A, 'X:', state.X, 'Y:', state.Y);
+    console.log('SP:', state.SP, 'STATUS:', state.STATUS.toString(2));
+    frameCount = 0;
+  }
+});
+
 ROM_INPUT.addEventListener('change', async (e) => {
   const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;

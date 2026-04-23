@@ -183,6 +183,13 @@ export class Ppu {
       }
     }
 
+    // Debug: log first visible pixel
+    if (this.scanline === 0 && this.cycle === 1) {
+      console.log('PPU debug - v:', this.v.toString(16), 'ppumask:', this.ppumask.toString(2), 'bgEnabled:', bgEnabled);
+      const testNt = this.busRead.readPpu(0x2000);
+      console.log('Nametable byte at $2000:', testNt.toString(16));
+    }
+
     if (isRendering) {
       if (this.cycle >= 1 && this.cycle <= 256) {
         const coarseX = this.v & 0x1F;

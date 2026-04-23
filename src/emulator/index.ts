@@ -92,11 +92,13 @@ export class Emulator {
   loadRom(data: Uint8Array): void {
     try {
       this.cartridge = new Cartridge(data);
+      console.log('PRG ROM first 16 bytes:', Array.from(this.cartridge.prg.slice(0, 16)).map(b => b.toString(16).padStart(2, '0')).join(' '));
+      console.log('PRG ROM at $FFFC:', this.cartridge.prg[0x3FFC].toString(16), this.cartridge.prg[0x3FFD].toString(16));
       this.cpu.reset();
       this.ppu.reset();
       console.log('ROM loaded successfully');
       console.log('Mapper:', this.cartridge.info.mapperNumber);
-      console.log('PRG size:', this.cartridge.info.prgSize);
+      console.log('PRG size:', this.cartridge.info.prgSize, '(hex:', this.cartridge.info.prgSize.toString(16), ')');
       console.log('CHR size:', this.cartridge.info.chrSize);
       console.log('PC after reset:', this.cpu.state.PC.toString(16));
     } catch (e) {
@@ -154,6 +156,10 @@ export class Emulator {
       this.cpu.reset();
       this.ppu.reset();
     }
+  }
+
+  getCpuState() {
+    return this.cpu.getState();
   }
 
   setControllerButton(button: string, pressed: boolean): void {
