@@ -6,6 +6,7 @@ import {
 import {
   FRAMEBUFFER_WIDTH,
   FRAMEBUFFER_HEIGHT,
+  NES_PALETTE,
 } from '../types/nes';
 
 interface BusRead {
@@ -15,6 +16,10 @@ interface BusRead {
 interface BusWrite {
   writePpu(addr: u16, val: u8): void;
 }
+
+type NmiCallback = () => void;
+
+const DEFAULT_BG_COLOR = 0x0F;
 
 export class Ppu {
   cycle: u16 = 0;
@@ -46,10 +51,15 @@ export class Ppu {
 
   private busRead: BusRead;
   private busWrite: BusWrite;
+  private nmiCallback: NmiCallback | null = null;
 
   constructor(busRead: BusRead, busWrite: BusWrite) {
     this.busRead = busRead;
     this.busWrite = busWrite;
+  }
+
+  setNmiCallback(callback: NmiCallback): void {
+    this.nmiCallback = callback;
   }
 
   writePpu(addr: u16, val: u8): void {
@@ -61,8 +71,8 @@ export class Ppu {
     this.scanline = 0;
     this.frameComplete = false;
     this.oddFrame = false;
-    this.ppuctrl = 0;
-    this.ppumask = 0;
+    this.ppuctrl = 0x90;
+    this.ppumask = 0x1E;
     this.ppustatus = 0;
     this.oamaddr = 0;
     this.ppuscroll_x = 0;
@@ -76,7 +86,12 @@ export class Ppu {
     this.w = 0;
     this.f = 0;
     this.vram.fill(0);
-    this.palette.fill(0);
+    this.palette[0x00] = 0x01;
+    this.palette[0x01] = 0x00;
+    this.palette[0x02] = 0x00;
+    this.palette[0x03] = 0x00;
+    for (let i = 0x04; i < 0x10; i++) this.palette[i] = (i & 0x03) + 0x04;
+    for (let i = 0x10; i < 0x20; i++) this.palette[i] = (i & 0x03) + 0x08;
     this.oam.fill(0xFF);
   }
 
@@ -146,24 +161,25 @@ export class Ppu {
   clock(): void {
     const isRendering = (this.ppumask & 0x18) !== 0;
     const bgEnabled = (this.ppumask & 0x08) !== 0;
-    const spriteEnabled = (this.ppumask & 0x10) !== 0;
 
     if (this.scanline < 240) {
       if (this.cycle > 0 && this.cycle <= 256) {
         const pixelX = this.cycle - 1;
         const pixelY = this.scanline;
 
-        let bgColor: u8 = 0;
+        let colorIdx: u8 = DEFAULT_BG_COLOR;
         if (bgEnabled) {
           const v = this.v & 0x7FFF;
-          const ntByte = this.busRead.readPpu(0x2000 | (v & 0x0FFF));
-          const attrByte = this.busRead.readPpu(0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07));
+          const ntAddr = 0x2000 | (v & 0x0FFF);
+          const ntByte = this.busRead.readPpu(ntAddr);
+          const attrAddr = 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07);
+          const attrByte = this.busRead.readPpu(attrAddr);
           const paletteIdx = ((attrByte >> (((v >> 5) & 0x04) | (v & 0x02))) & 0x03) << 2;
-          bgColor = paletteIdx | (ntByte & 0x03);
+          colorIdx = paletteIdx | (ntByte & 0x03);
         }
 
-        const color = this.palette[bgColor & 0x1F] || 0xFF555555;
-        this.framebuffer[pixelY * FRAMEBUFFER_WIDTH + pixelX] = color | 0xFF000000;
+        const color = NES_PALETTE[colorIdx & 0x3F];
+        this.framebuffer[pixelY * FRAMEBUFFER_WIDTH + pixelX] = color;
       }
     }
 
@@ -187,7 +203,8 @@ export class Ppu {
       this.scanline++;
       if (this.scanline === 241) {
         this.ppustatus |= 0x80;
-        if (this.ppuctrl & 0x80) {
+        if ((this.ppuctrl & 0x80) && this.nmiCallback) {
+          this.nmiCallback();
         }
       }
       if (this.scanline === SCANLINES_PER_FRAME) {

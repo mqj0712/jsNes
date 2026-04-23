@@ -40,13 +40,23 @@ export class Emulator {
       write: (addr, val) => this.bus.write(addr, val),
     });
 
+    this.ppu.setNmiCallback(() => this.triggerNmi());
+
     this.renderer = createRenderer('canvas');
+  }
+
+  private triggerNmi(): void {
+    if (this.cpu) {
+      this.cpu.nmi();
+    }
   }
 
   private ppuRead(addr: number): number {
     if (this.cartridge) {
       addr &= 0x3FFF;
-      if (addr < 0x3F00) {
+      if (addr < 0x2000) {
+        return this.cartridge.mapper.ppuRead(addr);
+      } else if (addr < 0x3F00) {
         return this.ppu.vram[addr & 0x07FF];
       } else {
         return this.ppu.palette[addr & 0x1F];
@@ -88,6 +98,7 @@ export class Emulator {
       console.log('Mapper:', this.cartridge.info.mapperNumber);
       console.log('PRG size:', this.cartridge.info.prgSize);
       console.log('CHR size:', this.cartridge.info.chrSize);
+      console.log('PC after reset:', this.cpu.state.PC.toString(16));
     } catch (e) {
       console.error('Failed to load ROM:', e);
     }
@@ -125,10 +136,10 @@ export class Emulator {
 
   private runFrame(): void {
     while (!this.ppu.frameComplete) {
-      for (let i = 0; i < 3; i++) {
+      const cpuCycles = this.cpu.clock();
+      for (let i = 0; i < cpuCycles * 3; i++) {
         this.ppu.clock();
       }
-      this.cpu.clock();
     }
     this.ppu.frameComplete = false;
     this.renderer.render(this.ppu.framebuffer);
