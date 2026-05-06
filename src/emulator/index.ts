@@ -42,6 +42,8 @@ export class Emulator {
 
     this.ppu.setNmiCallback(() => this.triggerNmi());
 
+    this.cpu.setPpuState(this.ppu);
+
     this.renderer = createRenderer('canvas');
   }
 
@@ -56,10 +58,16 @@ export class Emulator {
       addr &= 0x3FFF;
       if (addr < 0x2000) {
         return this.cartridge.mapper.ppuRead(addr);
-      } else if (addr < 0x3F00) {
-        return this.ppu.vram[addr & 0x07FF];
-      } else {
+      } else if (addr >= 0x3F00) {
         return this.ppu.palette[addr & 0x1F];
+      } else if ((addr & 0x07FF) < 0x08) {
+        return this.ppu.readRegister(addr & 0x07);
+      } else {
+        let vramAddr = addr - 0x2000;
+        if (vramAddr >= 0x0800) {
+          vramAddr -= 0x0800;
+        }
+        return this.ppu.vram[vramAddr];
       }
     }
     return 0;
@@ -68,10 +76,16 @@ export class Emulator {
   private ppuWrite(addr: number, val: number): void {
     if (this.cartridge) {
       addr &= 0x3FFF;
-      if (addr < 0x3F00) {
-        this.ppu.vram[addr & 0x07FF] = val;
-      } else {
+      if (addr >= 0x3F00) {
         this.ppu.palette[addr & 0x1F] = val;
+      } else if ((addr & 0x07FF) < 0x08) {
+        this.ppu.writeRegister(addr & 0x07, val);
+      } else {
+        let vramAddr = addr - 0x2000;
+        if (vramAddr >= 0x0800) {
+          vramAddr -= 0x0800;
+        }
+        this.ppu.vram[vramAddr] = val;
       }
     }
   }
@@ -94,9 +108,12 @@ export class Emulator {
       this.cartridge = new Cartridge(data);
       console.log('PRG ROM first 16 bytes:', Array.from(this.cartridge.prg.slice(0, 16)).map(b => b.toString(16).padStart(2, '0')).join(' '));
       console.log('PRG ROM at $FFFC:', this.cartridge.prg[0x3FFC].toString(16), this.cartridge.prg[0x3FFD].toString(16));
-      this.cpu.reset();
-      this.ppu.reset();
-      console.log('ROM loaded successfully');
+this.cpu.reset();
+    this.ppu.reset();
+    for (let i = 0; i < 21; i++) {
+      this.ppu.clock();
+    }
+    console.log('ROM loaded successfully');
       console.log('Mapper:', this.cartridge.info.mapperNumber);
       console.log('PRG size:', this.cartridge.info.prgSize, '(hex:', this.cartridge.info.prgSize.toString(16), ')');
       console.log('CHR size:', this.cartridge.info.chrSize);
@@ -137,13 +154,13 @@ export class Emulator {
   }
 
   private runFrame(): void {
+    this.ppu.frameComplete = false;
     while (!this.ppu.frameComplete) {
       const cpuCycles = this.cpu.clock();
       for (let i = 0; i < cpuCycles * 3; i++) {
         this.ppu.clock();
       }
     }
-    this.ppu.frameComplete = false;
     this.renderer.render(this.ppu.framebuffer);
   }
 

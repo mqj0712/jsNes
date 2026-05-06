@@ -58,13 +58,13 @@ export class Cartridge {
     }
 
     const hasChrRam = chrSize === 0;
-    this.mapper = this.createMapper(mapperNumber, this.prg, prgSize, chrSize, hasChrRam);
+    this.mapper = this.createMapper(mapperNumber, this.prg, this.chr, prgSize, chrSize, hasChrRam);
   }
 
-  private createMapper(mapperNumber: u8, prg: Uint8Array, prgSize: u16, chrSize: u16, hasChrRam: boolean): Mapper {
-    switch (mapperNumber) {
-      case 0:
-        return new Mapper0(prg, prgSize, chrSize, hasChrRam);
+  private createMapper(mapperNumber: u8, prg: Uint8Array, chr: Uint8Array, prgSize: u16, chrSize: u16, hasChrRam: boolean): Mapper {
+switch (mapperNumber) {
+  case 0:
+    return new Mapper0(prg, chr, prgSize, chrSize, hasChrRam);
       default:
         throw new Error(`Unsupported mapper: ${mapperNumber}`);
     }

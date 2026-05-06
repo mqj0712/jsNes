@@ -20,9 +20,9 @@ export class CanvasRenderer implements Renderer {
     const data = this.imageData.data;
     for (let i = 0; i < buffer.length; i++) {
       const pixel = buffer[i];
-      data[i * 4] = (pixel >> 16) & 0xFF;
+      data[i * 4] = (pixel >> 0) & 0xFF;
       data[i * 4 + 1] = (pixel >> 8) & 0xFF;
-      data[i * 4 + 2] = pixel & 0xFF;
+      data[i * 4 + 2] = (pixel >> 16) & 0xFF;
       data[i * 4 + 3] = 0xFF;
     }
     this.ctx.putImageData(this.imageData, 0, 0);

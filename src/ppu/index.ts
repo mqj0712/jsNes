@@ -170,12 +170,25 @@ export class Ppu {
         let colorIdx: u8 = DEFAULT_BG_COLOR;
         if (bgEnabled) {
           const v = this.v & 0x7FFF;
+          const fineY = (this.v >> 12) & 0x07;
+
           const ntAddr = 0x2000 | (v & 0x0FFF);
           const ntByte = this.busRead.readPpu(ntAddr);
+
           const attrAddr = 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07);
           const attrByte = this.busRead.readPpu(attrAddr);
-          const paletteIdx = ((attrByte >> (((v >> 5) & 0x04) | (v & 0x02))) & 0x03) << 2;
-          colorIdx = paletteIdx | (ntByte & 0x03);
+const paletteIdx = ((attrByte >> (((v >> 5) & 0x04) | (v & 0x02))) & 0x03) << 2;
+
+const patternTableBase = (this.ppuctrl & 0x10) ? 0x1000 : 0x0000;
+const patternAddr = patternTableBase | (ntByte << 4) | fineY;
+const patternLow = this.busRead.readPpu(patternAddr);
+const patternHigh = this.busRead.readPpu(patternAddr + 8);
+
+const bitSelect = 7 - (this.v & 0x07);
+const patternIdx = ((patternHigh >> bitSelect) & 0x01) << 1 | ((patternLow >> bitSelect) & 0x01);
+
+const paletteAddr = 0x3F00 + ((paletteIdx + patternIdx) & 0x1F);
+colorIdx = this.busRead.readPpu(paletteAddr);
         }
 
         const color = NES_PALETTE[colorIdx & 0x3F];
@@ -183,12 +196,12 @@ export class Ppu {
       }
     }
 
-    // Debug: log first visible pixel
-    if (this.scanline === 0 && this.cycle === 1) {
-      console.log('PPU debug - v:', this.v.toString(16), 'ppumask:', this.ppumask.toString(2), 'bgEnabled:', bgEnabled);
-      const testNt = this.busRead.readPpu(0x2000);
-      console.log('Nametable byte at $2000:', testNt.toString(16));
-    }
+// Debug first 8 pixels of scanline 0
+  // if (this.scanline === 0 && this.cycle === 1) {
+  // console.log('PPU debug - v:', this.v.toString(16), 'ppumask:', this.ppumask.toString(2), 'bgEnabled:', bgEnabled);
+  // const testNt = this.busRead.readPpu(0x2000);
+  // console.log('Nametable byte at $2000:', testNt.toString(16));
+  // }
 
     if (isRendering) {
       if (this.cycle >= 1 && this.cycle <= 256) {
@@ -214,11 +227,13 @@ export class Ppu {
           this.nmiCallback();
         }
       }
-      if (this.scanline === SCANLINES_PER_FRAME) {
+if (this.scanline === SCANLINES_PER_FRAME) {
         this.scanline = 0;
         this.frameComplete = true;
-        if ((this.ppumask & 0x18) !== 0 && this.oddFrame) {
-          this.cycle = 1;
+        if ((this.ppumask & 0x18) !== 0) {
+          this.cycle = this.oddFrame ? 0 : 1;
+        } else {
+          this.cycle = 0;
         }
         this.oddFrame = !this.oddFrame;
       }

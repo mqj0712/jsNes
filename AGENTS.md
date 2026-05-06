@@ -46,3 +46,18 @@ src/
 - 使用 `u8`/`u16`/`u32` 类型别名或直接用 `number`
 - TypedArray 替代 `number[]`
 - 热路径避免对象分配
+
+## 服务管理
+使用 `dev.sh` 脚本管理开发服务器:
+```bash
+./dev.sh start # 启动服务
+./dev.sh stop # 停止服务
+./dev.sh restart # 重启服务
+./dev.sh status # 查看状态
+```
+
+## Git 操作
+使用 GitHub MCP 工具进行代码提交和推送:
+- **提交前**: 先运行 `npm run build` 确保代码无错误
+- **提交代码**: 使用 `github_create_or_update_file` 或 `github_push_files` 推送更改
+- **不要**使用 git 命令行直接提交

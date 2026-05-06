@@ -36,7 +36,7 @@ export class Bus {
     if (addr < 0x2000) {
       return this.ram[addr & RAM_MASK];
     } else if (addr < 0x4000) {
-      return this.ppuRead(addr & PPU_REG_MASK);
+      return this.ppuRead(addr);
     } else if (addr < 0x4020) {
       if (addr === 0x4016) {
         return this.controllerRead();
@@ -53,7 +53,7 @@ export class Bus {
     if (addr < 0x2000) {
       this.ram[addr & RAM_MASK] = value;
     } else if (addr < 0x4000) {
-      this.ppuWrite(addr & PPU_REG_MASK, value);
+      this.ppuWrite(addr, value);
     } else if (addr < 0x4020) {
       this.apuWrite(addr, value);
     } else {

@@ -8,9 +8,9 @@ export class Mapper0 implements Mapper {
   private chrSize: u16;
   private hasChrRam: boolean;
 
-  constructor(romData: Uint8Array, prgSize: u16, chrSize: u16, hasChrRam: boolean) {
-    this.prg = romData;
-    this.chr = new Uint8Array(0x2000);
+  constructor(prg: Uint8Array, chr: Uint8Array, prgSize: u16, chrSize: u16, hasChrRam: boolean) {
+    this.prg = prg;
+    this.chr = chr;
     this.prgSize = prgSize;
     this.chrSize = chrSize;
     this.hasChrRam = hasChrRam;
